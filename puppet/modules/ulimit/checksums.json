@@ -1,0 +1,13 @@
+{
+  "Gemfile": "6545dc55800b7ef2d742d3d96791ea38",
+  "Gemfile.lock": "4e7ef6deb4ca2da5e29c484477919997",
+  "LICENSE": "1906cc9accb05dcaf61c8cda63402170",
+  "README.md": "396d4e8b96d62ee7802687d6b950ef68",
+  "manifests/config.pp": "610b83328e1c3d376f4f3084d5a8152d",
+  "manifests/init.pp": "8c33d4853f94381cfba83241e14093a9",
+  "manifests/params.pp": "ea48928d53e5202c117d7d859b048b8c",
+  "manifests/rule.pp": "a2f29a9a9f8e93640ebdac55bc0c1d77",
+  "metadata.json": "f06fadb94e9b62c54fe82bdb2a438529",
+  "templates/rule.conf.erb": "49dc4279e4e24132f513c1b0fac8c4c0",
+  "tests/init.pp": "4328921c3e7cd2f97539d6c5cee4dab6"
+}

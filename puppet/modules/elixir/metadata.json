@@ -1,0 +1,15 @@
+{
+  "name": "garethr-elixir",
+  "version": "0.0.3",
+  "author": "Gareth Rushgrove",
+  "summary": "Module for installing elixir on Ubuntu",
+  "license": "Apache License, Version 2.0",
+  "source": "git://github.com/garethr/garethr-elixir.git",
+  "project_page": "https://github.com/garethr/garethr-elixir",
+  "issues_url": "https://github.com/garethr/garethr-elixir/issues",
+  "dependencies": [
+    {"name":"puppetlabs/stdlib"},
+    {"name":"garethr/erlang"},
+    {"name":"maestrodev/wget"}
+  ]
+}
