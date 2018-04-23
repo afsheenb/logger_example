@@ -31,5 +31,9 @@ def enrich():
     json_data = json_data + '\n'
     return json_data 
 
+@app.route('/check/', methods=['GET'])
+def check():
+    return "200 OK\n"
+
 if __name__ == '__main__':
       app.run(host='0.0.0.0', port=8081, debug=True)
