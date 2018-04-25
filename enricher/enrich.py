@@ -9,7 +9,7 @@ app = Flask(__name__)
 @app.route('/enrich/', methods=['POST'])
 def enrich():
     content = request.get_json(silent=True,force=True)
-    reader = geoip2.database.Reader('/usr/src/geoip-databases/GeoIP2-City.mmdb')
+    reader = geoip2.database.Reader('/usr/src/ozone/ozone-code/geoip-databases/GeoIP2-City.mmdb')
     data = {}
 
     try:
