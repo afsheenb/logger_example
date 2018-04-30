@@ -1,114 +1,118 @@
-# ntp.conf: Managed by puppet.
+# This file is being maintained by Puppet.
+# DO NOT EDIT
 #
-<% if @tinker == true and (@panic or @stepout) -%>
-# Enable next tinker options:
-# panic - keep ntpd from panicking in the event of a large clock skew
-# when a VM guest is suspended and resumed;
-# stepout - allow ntpd change offset faster
-tinker<% if @panic -%> panic <%= @panic %><% end %><% if @stepout -%> stepout <%= @stepout %><% end %>
+# /etc/ntp.conf, configuration for ntpd; see ntp.conf(5) for help
+<% if @driftfile_real != '' and @driftfile_real != nil -%>
+
+# Drift file.  Put this in a directory which the daemon can write to.
+# No symbolic links allowed, either, since the daemon updates the file
+# by creating a temporary in the same directory and then rename()'ing
+# it to the file.
+driftfile <%= @driftfile_real %>
 <% end -%>
 
-<% if @disable_monitor == true -%>
-disable monitor
-<% end -%>
-<% if @disable_auth == true -%>
-disable auth
-<% end -%>
-<% if @disable_kernel == true -%>
-disable kernel
-<% end -%>
-
-<% if @restrict != [] -%>
-# Permit time synchronization with our time source, but do not
-# permit the source to query or modify the service on this system.
-<% @restrict.flatten.each do |restrict| -%>
-restrict <%= restrict %>
-<% end -%>
-<% end -%>
-
-<% if @interfaces != [] -%>
-<% if @interfaces_ignore != [] -%>
-<% @interfaces_ignore.flatten.each do |interface| -%>
-interface ignore <%= interface %>
-<% end -%>
-<% else -%>
-# Ignore wildcard interface and only listen on the following specified
-# interfaces
-interface ignore wildcard
-<% end -%>
-<% @interfaces.flatten.each do |interface| -%>
-interface listen <%= interface %>
-<% end -%>
-<% end -%>
-
-<% if @broadcastclient == true -%>
-broadcastclient
-<% end -%>
-
-# Set up servers for ntpd with next options:
-# server - IP address or DNS name of upstream NTP server
-# iburst - allow send sync packages faster if upstream unavailable
-# prefer - select preferrable server
-# minpoll - set minimal update frequency
-# maxpoll - set maximal update frequency
-<% [@servers].flatten.each do |server| -%>
-server <%= server %><% if @iburst_enable == true -%> iburst<% end %><% if @preferred_servers.include?(server) -%> prefer<% end %><% if @minpoll -%> minpoll <%= @minpoll %><% end %><% if @maxpoll -%> maxpoll <%= @maxpoll %><% end %>
-<% end -%>
-
-<% if @udlc -%>
-# Undisciplined Local Clock. This is a fake driver intended for backup
-# and when no outside source of synchronized time is available.
-server   127.127.1.0
-fudge    127.127.1.0 stratum <%= @udlc_stratum %>
-restrict 127.127.1.0
-<% end -%>
-
-# Driftfile.
-driftfile <%= @driftfile %>
-
-<% unless @logfile.nil? -%>
-# Logfile
-logfile <%= @logfile %>
-<% end -%>
-
-<% unless @ntpsigndsocket.nil? -%>
-# Enable signed packets
-ntpsigndsocket <%= @ntpsigndsocket %>
-<% end -%>
-
-<% unless @peers.empty? -%>
-# Peers
-<% [@peers].flatten.each do |peer| -%>
-peer <%= peer %>
-<% end -%>
-<% end -%>
-
-<% if @keys_enable -%>
-keys <%= @keys_file %>
-<% unless @keys_trusted.empty? -%>
-trustedkey <%= @keys_trusted.join(' ') %>
-<% end -%>
-<% if @keys_requestkey != '' -%>
-requestkey <%= @keys_requestkey %>
-<% end -%>
-<% if @keys_controlkey != '' -%>
-controlkey <%= @keys_controlkey %>
-<% end -%>
-
-<% end -%>
-<% [@fudge].flatten.each do |entry| -%>
-fudge <%= entry %>
-<% end -%>
-
-<% unless @leapfile.nil? -%>
-# Leapfile
-leapfile <%= @leapfile %>
-<% end -%>
-
-<% if @tos == true -%>
-tos <% if @tos_minclock -%> minclock <%= @tos_minclock %><% end %><% if @tos_minsane -%> minsane <%= @tos_minsane %><% end %><% if @tos_floor -%> floor <%= @tos_floor %><% end %><% if @tos_ceiling -%> ceiling <%= @tos_ceiling %><% end %><% if @tos_cohort -%> cohort <%= @tos_cohort %><% end %>
+<% if @my_enable_stats == true %>
+# Statistics are being logged
+statsdir <%= @statsdir %>
+statistics loopstats peerstats clockstats
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+<% else %>
+# Statistics are not being logged
 <% end %>
 
-<% unless @authprov.nil? -%>
-authprov <%= @authprov %>
+<% if @logfile != 'UNSET' %>logfile <%= @logfile %><% end %>
+
+# You do need to talk to an NTP server or two (or three).
+#server ntp.your-provider.example
+
+# pool.ntp.org maps to about 1000 low-stratum NTP servers.  Your server will
+# pick a different set every time it starts up.  Please consider joining the
+# pool: <http://www.pool.ntp.org/join.html>
+
+<% @servers.each do |server| -%>
+server <%= server %><% if @server_options != 'UNSET' %> <%= @server_options %><% end %>
+<% end -%>
+
+<% if @my_peers != ['UNSET'] -%>
+# Peers
+<%   if @my_peers.is_a?(Array) -%>
+<%     @my_peers.each do |peer| -%>
+peer <%= peer %>
+<%     end -%>
+<%   end -%>
+<%   if @my_peers.is_a?(Hash) -%>
+<%     @my_peers.each do |k, v| -%>
+peer <%= v['host'] %><% if v['options'] %> <%= v['options'] %><% end %><% if v['comment'] %> # <%= v['comment'] %><% end %>
+<%     end -%>
+<%   end -%>
+<% end -%>
+
+# Access control configuration; see /usr/share/doc/ntp-doc/html/accopt.html for
+# details.  The web page <http://support.ntp.org/bin/view/Support/AccessRestrictions>
+# might also be helpful.
+#
+# Note that "restrict" applies to both servers and clients, so a configuration
+# that might be intended to block requests from certain clients could also end
+# up blocking replies from your own upstream servers.
+
+# By default, exchange time with everybody, but don't allow configuration.
+<% @restrict_options_real.each do |value| -%>
+restrict <%= value %>
+<% end -%>
+
+# Local users may interrogate the ntp server more closely.
+<% @restrict_localhost_real.each do |value| -%>
+restrict <%= value %>
+<% end -%>
+
+# Clients from this (example!) subnet have unlimited access, but only if
+# cryptographically authenticated.
+#restrict 192.168.123.0 mask 255.255.255.0 notrust
+
+
+# If you want to provide time to your local subnet, change the next line.
+# (Again, the address is an example only.)
+#broadcast 192.168.123.255
+
+# If you want to listen to time broadcasts on your local subnet, de-comment the
+# next lines.  Please do this only if you trust everybody on the network!
+#disable auth
+#broadcastclient
+<% if @ignore_local_clock_real == false -%>
+
+# Undisciplined Local Clock. This is a fake driver intended for backup
+# and when no outside source of synchronized time is available.
+server  127.127.1.0  # local clock
+fudge  127.127.1.0 stratum <%= @fudge_stratum %>
+<% end -%>
+<% if @keys_real != '' and @keys_real != nil -%>
+
+# Key file containing the keys and key identifiers used when operating
+# with symmetric key cryptography.
+keys <%= @keys_real %>
+<% end -%>
+
+# Specify the key identifiers which are trusted.
+#trustedkey 4 8 42
+
+# Specify the key identifier to use with the ntpdc utility.
+#requestkey 8
+
+# Specify the key identifier to use with the ntpq utility.
+#controlkey 8
+
+# Orphan mode
+# http://support.ntp.org/bin/view/Support/OrphanMode
+<% if @orphan_mode_stratum != 'UNSET' %>tos orphan <%= @orphan_mode_stratum %><% end %>
+<% if @enable_tinker_real == true -%>
+
+# Accept any offset - useful for VM's or suspended systems
+tinker panic 0
+<% end -%>
+<% if @disable_monitor_real == true -%>
+
+# Disabling monitor - https://isc.sans.edu/diary/NTP+reflection+attack/17300
+disable monitor
 <% end -%>

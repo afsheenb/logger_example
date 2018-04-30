@@ -11,7 +11,7 @@
 # * url: artifactory download url filepath. NOTE: replaces server, port, url_path parameters.
 # * server: artifactory server name (deprecated).
 # * port: artifactory server port (deprecated).
-# * url_path: artifactory file path http:://{server}:{port}/artifactory/{url_path} (deprecated).
+# * url_path: artifactory file path http://{server}:{port}/artifactory/{url_path} (deprecated).
 # * owner: file owner (see archive params for defaults).
 # * group: file group (see archive params for defaults).
 # * mode: file mode (see archive params for defaults).
@@ -43,20 +43,20 @@
 # }
 #
 define archive::artifactory (
-  $path         = $name,
-  $ensure       = present,
-  $url          = undef,
-  $server       = undef,
-  $port         = undef,
-  $url_path     = undef,
-  $owner        = undef,
-  $group        = undef,
-  $mode         = undef,
-  $archive_path = undef,
-  $extract      = undef,
-  $extract_path = undef,
-  $creates      = undef,
-  $cleanup      = undef,
+  String                                  $path         = $name,
+  Enum['present', 'absent']               $ensure       = present,
+  Optional[Pattern[/^https?:\/\//]]       $url          = undef,
+  Optional[String]                        $server       = undef,
+  Optional[Integer]                       $port         = undef,
+  Optional[String]                        $url_path     = undef,
+  Optional[String]                        $owner        = undef,
+  Optional[String]                        $group        = undef,
+  Optional[String]                        $mode         = undef,
+  Optional[Boolean]                       $extract      = undef,
+  Optional[String]                        $extract_path = undef,
+  Optional[String]                        $creates      = undef,
+  Optional[Boolean]                       $cleanup      = undef,
+  Optional[Stdlib::Compat::Absolute_path] $archive_path = undef,
 ) {
 
   include ::archive::params
@@ -67,27 +67,48 @@ define archive::artifactory (
     $file_path = $path
   }
 
-  validate_absolute_path($file_path)
+  if $file_path !~ Stdlib::Compat::Absolute_path {
+    fail("archive::artifactory[${name}]: \$name or \$archive_path must be an absolute path!") # lint:ignore:trailing_comma
+  }
 
   if $url {
-    $file_url = $url
-    $sha1_url = regsubst($url, '/artifactory/', '/artifactory/api/storage/')
+    $maven2_data = archive::parse_artifactory_url($url)
+    if $maven2_data and $maven2_data['folder_iteg_rev'] == 'SNAPSHOT'{
+      # URL represents a SNAPSHOT version. eg 'http://artifactory.example.com/artifactory/repo/com/example/artifact/0.0.1-SNAPSHOT/artifact-0.0.1-SNAPSHOT.zip'
+      # Only Artifactory Pro lets you download this directly but the corresponding fileinfo endpoint (where the sha1 checksum is published) doesn't exist.
+      # This means we can't use the artifactory_sha1 function
+
+      $latest_url_data = archive::artifactory_latest_url($url, $maven2_data)
+
+      $file_url = $latest_url_data['url']
+      $sha1     = $latest_url_data['sha1']
+    } else {
+      $file_url = $url
+      $sha1_url = regsubst($url, '/artifactory/', '/artifactory/api/storage/')
+      $sha1     = undef
+    }
   } elsif $server and $port and $url_path {
     warning('archive::artifactory attribute: server, port, url_path are deprecated')
     $art_url = "http://${server}:${port}/artifactory"
     $file_url = "${art_url}/${url_path}"
     $sha1_url = "${art_url}/api/storage/${url_path}"
+    $sha1     = undef
   } else {
     fail('Please provide fully qualified url path for artifactory file.')
   }
 
+  if $sha1 {
+    $_sha1 = $sha1
+  } else {
+    $_sha1 = artifactory_sha1($sha1_url)
+  }
   archive { $file_path:
     ensure        => $ensure,
     path          => $file_path,
     extract       => $extract,
     extract_path  => $extract_path,
     source        => $file_url,
-    checksum      => artifactory_sha1($sha1_url),
+    checksum      => $_sha1,
     checksum_type => 'sha1',
     creates       => $creates,
     cleanup       => $cleanup,

@@ -1,0 +1,17 @@
+KafkaServer {
+  com.sun.security.auth.module.Krb5LoginModule required
+  useKeyTab=true
+  keyTab="<%= @keytab -%>"
+  storeKey=true
+  useTicketCache=false
+  principal="<%= @principal -%>";
+};
+
+Client {
+  com.sun.security.auth.module.Krb5LoginModule required
+  useKeyTab=true
+  keyTab="<%= @keytab -%>"
+  storeKey=true
+  useTicketCache=false
+  principal="<%= @principal -%>";
+};

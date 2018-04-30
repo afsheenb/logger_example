@@ -175,6 +175,17 @@ vcsrepo { '/path/to/repo':
 }
 ~~~
 
+To clone the repository and trust the server certificate (sslVerify=false), set `trust_server_cert` to 'true':
+
+~~~ puppet
+vcsrepo { '/path/to/repo':
+  ensure            => present,
+  provider          => git,
+  source            => 'git://example.com/repo.git',
+  trust_server_cert => true,
+}
+~~~
+
 #### Use multiple remotes with a repository
 
 In place of a single string, you can set `source` to a hash of one or more name => URL pairs:
@@ -203,11 +214,22 @@ To use SSH keys associated with a user, specify the username in the `user` param
 vcsrepo { '/path/to/repo':
   ensure   => latest,
   provider => git,
-  source   => 'git://username@example.com/repo.git',
+  source   => 'ssh://username@example.com/repo.git',
   user     => 'toto', #uses toto's $HOME/.ssh setup
   require  => File['/home/toto/.ssh/id_rsa'],
 }
 ~~~
+
+To use SSH over a nonstandard port, use the full SSH scheme and include the port number:
+
+~~~ puppet
+vcsrepo { '/path/to/repo':
+  ensure   => latest,
+  provider => git,
+  source   => 'ssh://username@example.com:7999/repo.git',
+}
+~~~
+
 
 ### Bazaar
 

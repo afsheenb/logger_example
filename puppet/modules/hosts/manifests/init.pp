@@ -6,3 +6,4 @@ class hosts {
         content => template("hosts/hosts.rb"),
     }
 }
+

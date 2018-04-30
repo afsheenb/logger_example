@@ -1,17 +1,21 @@
 require 'beaker-rspec'
 require 'beaker/puppet_install_helper'
-
-UNSUPPORTED_PLATFORMS = ['windows', 'Darwin']
+require 'beaker/module_install_helper'
+UNSUPPORTED_PLATFORMS = %w[windows Darwin].freeze
 
 run_puppet_install_helper
+install_module_on(hosts)
+install_module_dependencies_on(hosts)
 
 RSpec.configure do |c|
-  proj_root = File.expand_path(File.join(File.dirname(__FILE__), '..'))
   c.formatter = :documentation
-  c.before :suite do
-    hosts.each do |host|
-      copy_module_to(host, :source => proj_root, :module_name => 'accounts')
-      on host, puppet('module','install','puppetlabs-stdlib'), { :acceptable_exit_codes => [0,1] }
+end
+
+RSpec::Matchers.define :contain_password do |password|
+  match do |user|
+    if password == user.encrypted_password
+      return true
     end
   end
+  false
 end

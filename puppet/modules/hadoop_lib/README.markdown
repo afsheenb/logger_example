@@ -1,0 +1,144 @@
+## Hadoop Puppet Helper Library
+
+[![Build Status](https://travis-ci.org/MetaCenterCloudPuppet/cesnet-hadoop_lib.svg?branch=master)](https://travis-ci.org/MetaCenterCloudPuppet/cesnet-hadoop\_lib) [![Puppet Forge](https://img.shields.io/puppetforge/v/cesnet/hadoop_lib.svg)](https://forge.puppetlabs.com/cesnet/hadoop\_lib)
+
+#### Table of Contents
+
+1. [Module Description - What the module does and why it is useful](#module-description)
+2. [Setup - The basics of getting started with hadoop\_lib](#setup)
+    * [What hadoop\_lib affects](#what-hadoop_lib-affects)
+3. [Usage - Beginning, configuration options, and additional functionality](#usage)
+4. [Reference - An under-the-hood peek at what the module is doing and how](#reference)
+    * [Classes](#classes)
+     * [hadoop\_lib::env](#class-env)
+    * [Resource Types](#resources)
+     * [hadoop\_lib::jdbc](#resource-jdbc)
+     * [hadoop\_lib::postinstall](#resource-postinstall)
+    * [Functions](#functions)
+     * [array\_search](#function-array_search)
+5. [Limitations - OS compatibility, etc.](#limitations)
+6. [Development - Guide for contributing to the module](#development)
+
+<a name="module-description"></a>
+## Module Description
+
+Common puppet library for Hadoop and its addons. It manages alternatives as used in BigTop-based Hadoop distributions and provides necessary environment variables.
+
+<a name="setup"></a>
+## Setup
+
+<a name="what-hadoop-affects"></a>
+### What hadoop\_lib affects
+
+* Files created (*env* class):
+ * */etc/profile.d/hadoop.sh*
+ * */etc/profile.d/hadoop.csh*
+* Links created (*jdbc* resource type)
+* Alternatives (*postinstall* resource type):
+ * */etc/&lt;NAME&gt;/conf*: it can be switched to the new alternative, so original configuration is kept intact
+
+<a name="usage"></a>
+## Usage
+
+**Example**: alternatives
+
+    Package['hive']
+    ->
+    ::hadoop_lib::postinstall { 'hive':
+      alternatives => 'cluster',
+    }
+
+**Example**: environment
+
+    ::hadoop_lib::env
+
+**Example**: MySQL JDBC jar
+
+    class { 'mysql::bindings':
+      java_enable => true,
+    }
+    ->
+    ::hadoop_lib::jdbc { '/usr/lib/hive/lib':
+      db => 'mysql',
+    }
+
+**Example**: array search function
+
+    $_myid = array_search($hostnames, $::fqdn)
+
+<a name="reference"></a>
+## Reference
+<a name="classes"></a>
+###Classes
+
+* [**`hadoop_lib::env`**](#class-env): Sets environment for Hadoop
+
+<a name="class-env"></a>
+### hadoop\_lib::env
+
+#### Parameters
+
+(none)
+
+<a name="resources"></a>
+###Resources
+
+* [**`hadoop_lib::postinstall`**](#resource-postinstall): Post-installation steps
+* [**`hadoop_lib::jdbc`**](#resource-jdbc): Link JDBC jar file from standard location
+
+<a name="resource-postinstall"></a>
+### hadoop\_lib::postinstall
+
+#### Parameters
+
+#####`alternatives`
+
+Switches the alternatives used for the configuration. Default: 'cluster' (Debian) or undef.
+
+It can be used only when supported (for example with Cloudera distribution).
+
+<a name="resource-jdbc"></a>
+### hadoop\_lib::jdbc
+
+Link JDBC jar file from standard location. Jar files must be installed.
+
+Example of using puppetlabs modules for jar files installation:
+
+* *puppetlabs-mysql*: *mysql::bindings* class with *java_enable* parameter set
+* *puppetlabs-postgresql*: *postgresql::lib::java* class
+
+#### Parameters
+
+#####`db`
+
+Database type. Default: undef.
+
+Values:
+
+* *mysql*, *mariadb*: MySQL/MariaDB,
+* *postgresql*: PostgreSQL
+
+<a name="functions"></a>
+###Functions
+
+* [**`array_search`**](#function-array_search): Search a value in array
+
+<a name="function-array_search"></a>
+### array\_search
+
+Searches a value in the array and returns the index starting from 1.
+
+#### Parameters
+
+#####`array`
+
+#####`value`
+
+<a name="development"></a>
+##Development
+
+* Repository: [https://github.com/MetaCenterCloudPuppet/cesnet-hadoop\_lib](https://github.com/MetaCenterCloudPuppet/cesnet-hadoop_lib)
+* Tests:
+ * basic: see *.travis.yml*
+ * vagrant: [https://github.com/MetaCenterCloudPuppet/hadoop-tests](https://github.com/MetaCenterCloudPuppet/hadoop-tests)
+* Email: František Dvořák &lt;valtri@civ.zcu.cz&gt;

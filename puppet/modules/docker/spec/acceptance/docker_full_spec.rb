@@ -35,14 +35,62 @@ describe 'the Puppet Docker module' do
 
         it 'should be start a docker process' do
           shell('ps -aux | grep docker') do |r|
-            expect(r.stdout).to match(/\/usr\/bin\/docker/)
+            expect(r.stdout).to match(/dockerd -H unix:\/\/\/var\/run\/docker.sock/)
           end
         end
 
         it 'should install a working docker client' do
           shell('docker ps', :acceptable_exit_codes => [0])
         end
+
+
+
+      it 'should stop a running container and remove container' do
+        pp=<<-EOS
+          class { 'docker':}
+
+          docker::image { 'ubuntu':
+            require => Class['docker'],
+          }
+
+          docker::run { 'container_3_6':
+            image   => 'ubuntu',
+            command => 'init',
+            require => Docker::Image['ubuntu'],
+          }
+        EOS
+
+        pp2=<<-EOS
+          class { 'docker':}
+
+          docker::image { 'ubuntu':
+            require => Class['docker'],
+          }
+
+          docker::run { 'container_3_6':
+            ensure  => 'absent',
+            image   => 'ubuntu',
+            require => Docker::Image['ubuntu'],
+          }
+        EOS
+
+        apply_manifest(pp, :catch_failures => true)
+        apply_manifest(pp, :catch_changes => true) unless fact('selinux') == 'true'
+
+        # A sleep to give docker time to execute properly
+        sleep 15
+
+        shell('docker ps', :acceptable_exit_codes => [0])
+
+        apply_manifest(pp2, :catch_failures => true)
+        apply_manifest(pp2, :catch_changes => true) unless fact('selinux') == 'true'
+
+        # A sleep to give docker time to execute properly
+        sleep 15
+
+        shell('docker inspect container-3-6', :acceptable_exit_codes => [1])
       end
+    end
 
       context 'passing a TCP address to bind to' do
         before(:all) do
@@ -92,7 +140,7 @@ describe 'the Puppet Docker module' do
     end
 
     describe 'docker::image' do
-      
+
       it 'should successfully download an image from the Docker Hub' do
         pp=<<-EOS
           class { 'docker':}
@@ -129,6 +177,26 @@ describe 'the Puppet Docker module' do
 
         shell('docker images') do |r|
           expect(r.stdout).to match(/ubuntu\s+precise/)
+        end
+      end
+
+      it 'should successfully download an image based on a digest from the Docker Hub' do
+        pp=<<-EOS
+          class { 'docker':}
+          docker::image { 'alpine':
+            ensure       => present,
+            image_digest => 'sha256:3dcdb92d7432d56604d4545cbd324b14e647b313626d99b889d0626de158f73a',
+            require      => Class['docker'],
+          }
+        EOS
+        apply_manifest(pp, :catch_failures => true)
+        apply_manifest(pp, :catch_changes => true) unless fact('selinux') == 'true'
+
+        # A sleep to give docker time to execute properly
+        sleep 4
+
+        shell('docker images --digests') do |r|
+          expect(r.stdout).to match(/alpine.*sha256:3dcdb92d7432d56604d4545cbd324b14e647b313626d99b889d0626de158f73a/)
         end
       end
 
@@ -509,17 +577,17 @@ describe 'the Puppet Docker module' do
         apply_manifest(pp, :catch_changes => true) unless fact('selinux') == 'true'
 
         # A sleep to give docker time to execute properly
-        sleep 4
+        sleep 15
 
-        shell('docker inspect container-3-6', :acceptable_exit_codes => [0])
+        shell('docker inspect container_3_6', :acceptable_exit_codes => [0])
 
         apply_manifest(pp2, :catch_failures => true)
         apply_manifest(pp2, :catch_changes => true) unless fact('selinux') == 'true'
 
         # A sleep to give docker time to execute properly
-        sleep 4
+        sleep 15
 
-        shell('docker inspect container-3-6', :acceptable_exit_codes => [1])
+        shell('docker inspect container_3_6', :acceptable_exit_codes => [1])
       end
     end
 
@@ -543,7 +611,7 @@ describe 'the Puppet Docker module' do
         apply_manifest(pp, :catch_changes => true) unless fact('selinux') == 'true'
 
         # A sleep to give docker time to execute properly
-        sleep 4
+        sleep 15
 
         container_1 = shell("docker ps | awk 'FNR == 2 {print $NF}'")
 
@@ -569,4 +637,3 @@ describe 'the Puppet Docker module' do
     end
   end
 end
-

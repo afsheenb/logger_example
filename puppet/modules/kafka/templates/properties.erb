@@ -1,0 +1,14 @@
+<% if @properties.has_key? 'zookeeper.connect' -%>
+<% zh = scope.lookupvar('kafka::_zookeeper_hostnames') -%>
+<% if !zh || zh == :undef then -%>
+<%   zh = ['localhost'] -%>
+<% end -%>
+<% root = scope.lookupvar('kafka::zookeeper_chroot') -%>
+<% @properties['zookeeper.connect'] = zh.map { |h| h + ':2181'}.join(',') + root -%>
+<% end -%>
+<% @properties.keys.sort.each do |key| -%>
+<% value = @properties[key] -%>
+<% if value != :undef and value != '::undef' then -%>
+<%= key -%>=<%= value.to_s.gsub(/[\n\r]/, ' ') %>
+<% end -%>
+<% end -%>

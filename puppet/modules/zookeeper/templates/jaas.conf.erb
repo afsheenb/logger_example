@@ -1,0 +1,13 @@
+Server {
+  com.sun.security.auth.module.Krb5LoginModule required
+  useKeyTab=true
+  keyTab="<%= @keytab -%>"
+  storeKey=true
+  useTicketCache=false
+  principal="zookeeper/<%= @fqdn -%>@<%= scope.lookupvar('zookeeper::realm') -%>";
+};
+
+Client {
+  com.sun.security.auth.module.Krb5LoginModule required
+  useTicketCache=true;
+};

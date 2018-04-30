@@ -34,6 +34,8 @@ define docker::registry(
   $password    = undef,
   $email       = undef,
   $local_user  = 'root',
+  $version     = $docker::version,
+  $receipt     = true,
 ) {
   include docker::params
 
@@ -42,8 +44,12 @@ define docker::registry(
   $docker_command = $docker::params::docker_command
 
   if $ensure == 'present' {
-    if $username != undef and $password != undef and $email != undef {
+    if $username != undef and $password != undef and $email != undef and $version =~ /1[.][1-9]0?/ {
       $auth_cmd = "${docker_command} login -u '${username}' -p \"\${password}\" -e '${email}' ${server}"
+      $auth_environment = "password=${password}"
+    }
+    elsif $username != undef and $password != undef {
+      $auth_cmd = "${docker_command} login -u '${username}' -p \"\${password}\" ${server}"
       $auth_environment = "password=${password}"
     }
     else {
@@ -56,6 +62,17 @@ define docker::registry(
     $auth_environment = undef
   }
 
+  if $receipt {
+    # no - with pw_hash
+    $local_user_strip = regsubst($local_user, '-', '', 'G')
+
+    file { "/root/registry-auth-puppet_receipt_${server}_${local_user}":
+      ensure  => $ensure,
+      content => pw_hash("${title}${auth_environment}${auth_cmd}${local_user}", 'SHA-512', $local_user_strip),
+      notify  => Exec["${title} auth"],
+    }
+  }
+
   exec { "${title} auth":
     environment => $auth_environment,
     command     => $auth_cmd,
@@ -63,6 +80,7 @@ define docker::registry(
     cwd         => '/root',
     path        => ['/bin', '/usr/bin'],
     timeout     => 0,
+    refreshonly => $receipt,
   }
 
 }

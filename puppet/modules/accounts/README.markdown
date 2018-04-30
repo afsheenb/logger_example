@@ -40,11 +40,11 @@ The above example creates accounts, home directories, and groups for Dan and Mor
 
 ~~~puppet
 accounts::user { 'bob':
-  uid      => 4001,
-  gid      => 4001,
+  uid      => '4001',
+  gid      => '4001',
+  group    => 'staff',
   shell    => '/bin/bash',
   password => '!!',
-  sshkeys  => "ssh-rsa AAAA...",
   locked   => false,
 }
 ~~~
@@ -58,6 +58,8 @@ A simple bashrc and bash\_profile rc file is managed by Puppet for each account.
  3. `~/.bashrc.custom`
 
 Account holders can customize their shells by managing their bashrc.custom files. In addition, the system administrator can make profile changes that affect all accounts with a bash shell by managing the '/etc/bashrc.puppet' file.
+
+To install an email foward, configure the `.forward` file by using the `forward_content` or `forward_source` parameters.
 
 ### Lock accounts
 
@@ -106,15 +108,31 @@ accounts::user { 'jeff':
 
 ### Defined type: `accounts::user`
 
-This resource manages the user, group, .vim/, .ssh/, .bash\_profile, .bashrc, homedir, .ssh/authorized\_keys files, and directories.
+This resource manages the user, group, vim/, .ssh/, .bash\_profile, .bashrc, homedir, .ssh/authorized\_keys files, and directories.
 
 #### `bashrc_content`
 
-The content to place in the user's ~/.bashrc file. Default: undef.
+The content to place in the user's ~/.bashrc file. Mutually exclusive to `bashrc_source`. Default: undef.
+
+#### `bashrc_source`
+
+A source file containing the content to place in the user's ~/.bashrc file. Mutually exclusive to `bashrc_content`. Default: undef.
 
 #### `bash_profile_content`
 
-The content to place in the user's ~/.bash\_profile file. Default: undef.
+The content to place in the user's ~/.bash\_profile file. Mutually exclusive to `bash_profile_source`. Default: undef.
+
+#### `bash_profile_source`
+
+A source file containing the content to place in the user's ~/.bash\_profile file. Mutually exclusive to `bash_profile_content`. Default: undef.
+
+#### `forward_content`
+
+The content to place in the user's ~/.forward file. Mutually exclusive to `forward_source`. Default: undef.
+
+#### `forward_source`
+
+A source file containing the content to place in the user's ~/.forward file. Mutually exclusive to `forward_content`. Default: undef.
 
 #### `comment`
 
@@ -128,22 +146,30 @@ Specifies whether the user, its primary group, homedir, and ssh keys should exis
 
 Specifies the gid of the user's primary group. Must be specified numerically. Default: undef.
 
+#### `group`
+
+Specifies the name of the user's primary group. Must be specified as a string. Default: a group named the same as user name
+
 #### `groups`
 
 Specifies the user's group memberships. Valid values: an array. Default: an empty array.
 
+#### `create_group`
+
+Specifies if you want to create a group with the user's name. Default: true.
+
 #### `home`
 
-Specifies the path to the user's home directory. 
-Default: 
-* Linux, non-root user: '/home/$name' 
+Specifies the path to the user's home directory.
+Default:
+* Linux, non-root user: '/home/$name'
 * Linux, root user: '/root'
-* Solaris, non-root user: '/export/home/$name' 
+* Solaris, non-root user: '/export/home/$name'
 * Solaris, root user: '/'
 
 #### `home_mode`
 
-Manages the user's home directory permission mode. Valid values are in [octal notation](https://docs.puppetlabs.com/references/latest/type.html#file-attribute-mode), specified as a string. Defaults to `0700`, which gives the owner full read, write, and execute permissions, while group and other have no permissions. 
+Manages the user's home directory permission mode. Valid values are in [octal notation](https://docs.puppetlabs.com/references/latest/type.html#file-attribute-mode), specified as a string. Defaults to `0700`, which gives the owner full read, write, and execute permissions, while group and other have no permissions.
 
 #### `locked`
 
@@ -161,6 +187,10 @@ Establishes whether specified groups should be considered the complete list (inc
 
 The user's password, in whatever encrypted format the local machine requires. Default: '!!', which prevents the user from logging in with a password.
 
+#### `ignore_password_if_empty`
+
+Specifies whether an empty password field should be ignored. If set to true, this ignores a password field that is defined but empty. If set to false, it sets the password to an empty value. Valid values: true, false. Default: true.
+
 #### `purge_sshkeys`
 
 Whether keys not included in `sshkeys` should be removed from the user. If `purge_sshkeys` is true and `sshkeys` is an empty array, all SSH keys will be removed from the user. Valid values: true, false. Default: false.
@@ -177,13 +207,23 @@ An array of SSH public keys associated with the user. These should be complete p
 
 Specifies the user's uid number. Must be specified numerically. Default: undef.
 
+#### `system`
+
+Specifies if you want to create a system account. Default: false.
+
+## Functions
+
+### accounts_ssh_options_parser
+
+Parses an ssh authorized_keys option string into an array using its expected pattern which matches a crazy regex slightly modified from shellwords. The pattern should be a string.
+
 ## Limitations
 
 This module works with Puppet Enterprise 2015.3 and later.
 
 ### Changes from pe\_accounts
 
-The accounts module is designed to take the place of the pe\_accounts module that shipped with PE versions 2015.2 and earlier. Some of the changes include the removal of the base class, improving the validation, and allowing more flexibility regarding which files should or should not be managed in a user's home directory. 
+The accounts module is designed to take the place of the pe\_accounts module that shipped with PE versions 2015.2 and earlier. Some of the changes include the removal of the base class, improving the validation, and allowing more flexibility regarding which files should or should not be managed in a user's home directory.
 
 For example, the .bashrc and .bash\_profile files are not managed by default but allow custom content to be passed in using the `bashrc_content` and `bash_profile_content` parameters. The content for these two files as managed by pe\_accounts can continue to be used by passing `bashrc_content => file('accounts/shell/bashrc')` and `bash_profile_content => file('accounts/shell/bash_profile')` to the `accounts::user` defined type.
 
