@@ -36,10 +36,10 @@ func main() {
 	kafkaConfig.Producer.Return.Successes = true
 	kafkaConfig.Producer.Return.Errors = true
 	kafkaConfig.Producer.Compression = sarama.CompressionSnappy
-	kafkaConfig.Producer.Flush.Frequency = 2 * time.Millisecond
-	kafkaConfig.Producer.Flush.Messages = 250
+	kafkaConfig.Producer.Flush.Frequency = 200 * time.Millisecond
+	kafkaConfig.Producer.Flush.Messages = 2500
 	hostname, _ := os.Hostname()
-        broker := []string {os.Getenv("KAFKA_BROKER")}
+        broker := []string {os.Getenv("KAFKA_BROKER1"), os.Getenv("KAFKA_BROKER2"), os.Getenv("KAFKA_BROKER3")}
 	log.Printf("Starting up udp2kafka bridge now...")
 	log.Printf("Starting on %s, PID %d", hostname, os.Getpid())
 	log.Printf("Machine has %d cores", runtime.NumCPU())
