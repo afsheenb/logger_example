@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/Shopify/sarama"
+	"log"
 	"net"
 	"os"
-	"log"
-	"github.com/Shopify/sarama"
-	"strings"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -39,7 +39,7 @@ func main() {
 	kafkaConfig.Producer.Flush.Frequency = 200 * time.Millisecond
 	kafkaConfig.Producer.Flush.Messages = 2500
 	hostname, _ := os.Hostname()
-        broker := []string {os.Getenv("KAFKA_BROKER1"), os.Getenv("KAFKA_BROKER2"), os.Getenv("KAFKA_BROKER3")}
+	broker := []string{os.Getenv("KAFKA_BROKER1"), os.Getenv("KAFKA_BROKER2"), os.Getenv("KAFKA_BROKER3")}
 	log.Printf("Starting up udp2kafka bridge now...")
 	log.Printf("Starting on %s, PID %d", hostname, os.Getpid())
 	log.Printf("Machine has %d cores", runtime.NumCPU())
@@ -54,14 +54,15 @@ func main() {
 		}
 		topic := string(p[0])
 		msg := &sarama.ProducerMessage{
-			Topic:     topic,
-			Value:     sarama.StringEncoder(p[1]),
+			Topic: topic,
+			Value: sarama.StringEncoder(p[1]),
 		}
 		producer.Input() <- msg
 
-		if err := producer.Close(); err != nil {
-			fmt.Println("Critical error closing kafka connection: %v", err)
+		if errs := producer.Close(); errs != nil {
+			for _, err := range errs.(sarama.ProducerErrors) {
+				fmt.Println("Encountered error sending message to kafka: ", err)
 			}
-
+		}
 	}
 }
