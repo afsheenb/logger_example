@@ -1,0 +1,276 @@
+
+<html>
+
+  <head>
+
+<script src="http://cdn.pootl.net/p1/pbjs-event-logger.js"></script>
+
+   <script>  // MB 20180418 - added for prebid update
+
+        var pbLotameData = 'n/a'; // NOTE - this will always be a client -> server call, there's not really a way around this.
+        var pbCustomData = 'n/a'; // NOTE - this *might* be written directly into the page if the data is available, instead of being a client->server js call as shown here.
+
+        var timingLotame = new Date().valueOf();
+
+        // this is the jsonp handler for Lotame
+        // it only needs to be up here if the Lotame script is synchronously loaded.
+        function processauds( json ) {
+            var msTaken = new Date().valueOf() - timingLotame;
+            console.log('processauds called in ' + msTaken + 'ms with : ' , json );
+            pbLotameData = JSON.stringify( json );
+        }
+
+        // simulate a call to an internal api endpoint to get additional customer data. Quite a quick response shown here.
+        // This should actually append a script to the dom which sets the value of customData - either using a jsonp function or just set the value
+        setTimeout(function() {
+                var fakeJson = JSON.stringify({"networkID":"3048","dfpSiteID":"d.thesun","sectionID":"homepage","path":"\/","sec_id":"null","sec":"sec","topics":"null","kw":"null","aid":"null","search":"null","article_type":"null","hide_ads":"","article_slug":"null"});
+                console.log('fake response from custom data endpoint: ' , fakeJson);
+                pbCustomData = fakeJson;
+            } , 260
+        );   </script>
+    <script src="https://betalyst.com/Lotame_api_simulation.php?c=123456&pe=y&callback=processauds" async ></script>
+<script>
+
+    var PREBID_TIMEOUT = 900;
+
+    var googletag = googletag || {};
+    googletag.cmd = googletag.cmd || [];
+
+    /* pbjs.initAdserver will be called either when all bids are back, or
+       when the timeout is reached.
+    */
+    function initAdserver() {
+        if (pbjs.initAdserverSet) return;
+
+        eventLogger.logEventTime('timer', 'end');
+        eventLogger.logEventTime('loadGPT', 'start');
+
+        //load GPT library here
+        (function() {
+            var gads = document.createElement('script');
+            gads.async = true;
+            gads.type = 'text/javascript';
+            var useSSL = 'https:' == document.location.protocol;
+            gads.src = (useSSL ? 'https:' : 'http:') +
+            '//www.googletagservices.com/tag/js/gpt.js';
+            var node = document.getElementsByTagName('script')[0];
+            node.parentNode.insertBefore(gads, node);
+        })();
+        pbjs.initAdserverSet = true;
+    };
+    // Load GPT when timeout is reached.
+    setTimeout(initAdserver, PREBID_TIMEOUT);
+
+    eventLogger.logEventTime('timer', 'start');
+
+    // Load the Prebid Javascript Library Async. We recommend loading it immediately after
+    // the initAdserver() and setTimeout functions.
+    (function() {
+        eventLogger.logEventTime('loadPBJS', 'start');
+
+        var pbjsEl = document.createElement("script"); pbjsEl.type = "text/javascript";
+        pbjsEl.async = true; 
+        
+        //pbjsEl.src = "prebid.js";
+        //pbjsEl.src = '//acdn.adnxs.com/prebid/prebid.js';
+        pbjsEl.src = '//cdn.pootl.net/prebid.js';
+        var pbjsTargetEl = document.getElementsByTagName("head")[0];
+        pbjsTargetEl.insertBefore(pbjsEl, pbjsTargetEl.firstChild);
+
+        eventLogger.logEventTime('loadPBJS', 'end');
+    })();
+
+    var pbjs = pbjs || {};
+    pbjs.que = pbjs.que || [];
+         
+
+    pbjs.que.push(function() {
+        /* 1. Register bidder tag Ids
+
+        Registers the bidder tags for your ad units. Once the prebid.js 
+        library loads, it reads the pbjs.adUnits object and sends out 
+        bid requests. Find the complete reference on bidders at 
+        http://prebid.org/bidders.html.
+
+        code:  Your GPT slot's slot element ID. If they don't match, prebid.js 
+               would not be able to set targeting correctly
+        sizes: All sizes your ad unit accepts. They should match with GPT.
+
+        */
+        var adUnits = [{
+            code: 'div-gpt-ad-1438287399331-0',
+            sizes: [[300, 250], [300, 600]],
+            bids: [
+                // 1 ad unit can be targeted by multiple bids.
+                {
+                    bidder: 'appnexus',
+                    params: {
+                       placementId: '6546370',
+						lotame: pbLotameData,
+						customData: pbCustomData
+                    }
+                },
+            ]
+        }];
+       
+         pbjs.setConfig({
+                 debug: true,
+		 s2sConfig: {
+		     accountId: '1',
+		     enabled: true,
+		     bidders: ['appnexus'],
+		     timeout: 1000,
+		     adapter: 'prebidServer',
+		     is_debug: 'true',
+		     endpoint: 'http://elb.the-ozone-project.com/openrtb2/auction',
+		     syncEndpoint: 'http://elb.the-ozone-project.com/cookie_sync',
+		     cookieSet: false
+		   }
+               });
+
+
+
+        pbjs.addAdUnits(adUnits);
+       
+        var adUnitCode = function (adUnitCode) { 
+            pbjs.onEvent(adUnitCode,'adUnitBidsBack');
+            console.log('ad unit bids back for : %o' , adUnitCode);
+        };
+
+        /* Request bids for the added ad units. If adUnits or adUnitCodes are
+           not specified, the function will request bids for all added ad units.
+        */
+        pbjs.requestBids({
+
+            /* The bidsBack function will be called when either timeout is
+               reached, or when all bids come back, whichever happens sooner.
+            */
+            bidsBackHandler: function(bidResponses) {
+
+                initAdserver();
+            },
+
+            /* You can specify specific `adUnitCodes` to only request bids
+               for certain ad units.
+               adUnitCodes: ['code1', 'code2']
+            */
+
+            /* You can also make one off bid requests for the given `adUnits`. 
+               adUnits: [adUnit2, adUnit1]
+            */ 
+
+            /* The bidsBackHandler will be executed either when all bids are
+               back, or when the timeout is reached. 
+               timeout: 1000
+            */
+        })
+
+
+        /* 2. Configure Ad Server Targeting
+
+        The below section defines what key value targeting will be sent to GPT. 
+        For each bidder's bid, Prebid.js will set the below 4 keys (hb_bidder, 
+        hb_adid, hb_pb, hb_size) with their corresponding values.
+
+        Bidders all have different recommended ad server line item targeting and 
+        creative setup. To remove the headache for you, Prebid.js has a default 
+        recommended query string targeting setting for all bidders.
+
+        If you'd like to customize the key value pairs, you can overwrite the settings 
+        as the below example shows. Let your ad ops team know about the change, so they 
+        can update the line item targeting accordingly.
+
+        */
+        
+        pbjs.bidderSettings = {
+            standard: {
+                adserverTargeting: [{
+                    key: "hb_bidder",
+                    val: function(bidResponse) {
+                        return bidResponse.bidderCode;
+                    }
+                }, {
+                    key: "hb_adid",
+                    val: function(bidResponse) {
+                        return bidResponse.adId;
+                    }
+                }, {
+                    key: "hb_pb",
+                    val: function(bidResponse) {
+                        return bidResponse.pbLg;
+                    }
+                }]
+            }
+        };
+
+    });
+
+
+
+</script>
+
+
+<script>
+    googletag.cmd.push(function() {
+
+        eventLogger.logEventTime('loadGPT', 'end');
+
+        var rightSlot = googletag.defineSlot('/19968336/header-bid-tag-0', [[300, 250], [300, 600]], 'div-gpt-ad-1438287399331-0').addService(googletag.pubads());
+
+        pbjs.que.push(function() {
+            eventLogger.logEventTime('targeting', 'start');
+
+            /* Set query string targeting on all GPT ad units. The logic for deciding query strings is described in the section Configure AdServer Targeting. Note that this function has to be called after all ad units on page are defined.
+            */
+            pbjs.setTargetingForGPTAsync();
+
+            eventLogger.logEventTime('targeting', 'end');
+
+            console.log('Get all winning bids : ' + pbjs.getAllWinningBids());
+
+            console.log('Targeting params:')
+            console.log(pbjs.getAdserverTargeting());
+
+            console.log('Dumping all bid objects to console:');
+            console.log(JSON.stringify(pbjs.getBidResponses()));
+        });
+    
+        googletag.pubads().enableSingleRequest();
+        googletag.enableServices();   
+
+        eventLogger.submitLogToParent();
+        
+    });
+
+    function refreshBids() {
+        pbjs.que.push(function() {
+            pbjs.requestBids({
+                timeout: PREBID_TIMEOUT,
+                bidsBackHandler: function() {
+                    pbjs.setTargetingForGPTAsync();
+                    googletag.pubads().refresh(); 
+                }
+            });
+        });
+    }
+
+
+    </script>
+</head>
+
+
+<body style="padding:0;margin:0">
+
+
+    <!-- /19968336/pbjs-right1-300x250-300x600 -->
+    <div id='div-gpt-ad-1438287399331-0'>
+        <script type='text/javascript'>
+            googletag.cmd.push(function() { googletag.display('div-gpt-ad-1438287399331-0'); });
+        </script>
+    </div>
+    <button onclick="refreshBids()">Refresh Bids</button>
+
+</body>
+
+</html>
+
