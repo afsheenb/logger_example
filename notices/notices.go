@@ -39,7 +39,9 @@ func nurl(rw http.ResponseWriter, req *http.Request) {
 	price := req.Form.Get("price")
 	clickurl := req.Form.Get("clickurl")
 
-	noticePayload := "{\"timestamp\": " + strTime + ", \"partner\": " + partner + ", \"impid\": " + impId + ", \"auction\": " + auction + ", \"clickurl\": " + clickurl + ", \"price\": " + price + ", \"bidid\": " + bidId + ", \"bidcur\": \"" + bidCur + "\" }"
+
+	noticePayload := "{\"timestamp\": " + strTime + ", \"partner\": \"" + partner + "\", \"impid\": \"" + impId + "\", \"auction\": \"" + auction + "\", \"clickurl\": \"" + clickurl + "\", \"price\": \"" + price + "\", \"bidid\": \"" + bidId + "\", \"bidcur\": \"" + bidCur + "\" }"
+
 
 	RemoteAddr, err := net.ResolveUDPAddr("udp", os.Getenv("LOG_HOST"))
 	conn, err := net.DialUDP("udp", nil, RemoteAddr)
