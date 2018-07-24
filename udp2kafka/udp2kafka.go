@@ -30,7 +30,7 @@ func main() {
 	checkError(err)
 	defer serverConn.Close()
 
-	buf := make([]byte, 65535)
+	buf := make([]byte, 262144)
 	kafkaConfig := sarama.NewConfig()
 	kafkaConfig.Producer.Retry.Max = 3
 	kafkaConfig.Producer.Return.Successes = true
