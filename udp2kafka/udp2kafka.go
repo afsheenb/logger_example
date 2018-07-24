@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Shopify/sarama"
+	sp "gopkg.in/snowplow/snowplow-golang-tracker.v1/tracker"
 	"log"
 	"net"
 	"os"
@@ -30,7 +32,6 @@ func main() {
 	checkError(err)
 	defer serverConn.Close()
 
-	buf := make([]byte, 262144)
 	kafkaConfig := sarama.NewConfig()
 	kafkaConfig.Producer.Retry.Max = 3
 	kafkaConfig.Producer.Return.Successes = true
@@ -44,8 +45,11 @@ func main() {
 	log.Printf("Starting on %s, PID %d", hostname, os.Getpid())
 	log.Printf("Machine has %d cores", runtime.NumCPU())
 	log.Printf("Bridging messages received on UDP port 514 to Kafka broker %s", broker[0])
+	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
+	tracker := sp.InitTracker(sp.RequireEmitter(emitter))
 
 	for {
+	        buf := make([]byte, 524288)
 		n, _, err := serverConn.ReadFromUDP(buf)
 		p := strings.FieldsFunc(string(buf[0:n]), split)
 		producer, err := sarama.NewAsyncProducer(broker, kafkaConfig)
@@ -61,8 +65,18 @@ func main() {
 
 		if errs := producer.Close(); errs != nil {
 			for _, err := range errs.(sarama.ProducerErrors) {
-				fmt.Println("Encountered error sending message to kafka: ", err)
+				fmt.Println("Write to kafka failed: ", err)
 			}
+		}
+		if topic == "httpreq" {
+			data := string(p[1])
+			dataMap := make(map[string]interface{})
+			err := json.Unmarshal([]byte(data), &dataMap)
+			if err != nil { fmt.Println(err) }
+
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/1-0-1", dataMap)
+			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{ Event: sdj, })
+			// fmt.Println(data)
 		}
 	}
 }
