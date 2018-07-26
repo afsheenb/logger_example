@@ -1,0 +1,17 @@
+FROM golang:1.10.3-stretch
+
+LABEL com.datadoghq.ad.logs='[{"source": "ozone", "service": "udp2kafka"}]' \
+      com.datadoghq.ad.check_names='["udp2kafka"]'
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update && apt-get install -y
+
+RUN mkdir -p /go/src/github.com/ozone-code/udp2kafka/
+WORKDIR /go/src/github.com/ozone-code/udp2kafka/
+COPY . .
+
+RUN go get -d -v ./...
+RUN go install -v ./...
+
+CMD go run udp2kafka.go
