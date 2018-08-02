@@ -37,6 +37,7 @@ class heartbeat_handler(BaseHTTPRequestHandler):
         import validators
 
         url = os.environ['PBS_URL']
+        test_site = os.environ['TEST_SITE']
 
         if not validators.url(url):
             print("URL: {} is invalid".format(url))
@@ -71,7 +72,7 @@ class heartbeat_handler(BaseHTTPRequestHandler):
             "test": 1,
             "tmax": 500,
             "site": {
-                "page": "http://demo.the-ozone-project.com"
+                "page": test_site
             }
         }
 
