@@ -92,7 +92,7 @@ class heartbeat_handler(BaseHTTPRequestHandler):
 
 def run():
     print('starting heartbeat server...')
-    server_address = ('127.0.0.1', 8081)
+    server_address = ('0.0.0.0', 8081)
     httpd = HTTPServer(server_address, heartbeat_handler)
     print('running heartbeat server...')
     httpd.serve_forever()

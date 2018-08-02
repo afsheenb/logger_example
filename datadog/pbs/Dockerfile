@@ -1,6 +1,5 @@
 FROM python:latest
 
-MAINTAINER partner-support@confluent.io
 LABEL io.confluent.docker.build.number=$BUILD_NUMBER \
       io.confluent.docker=true \
       com.datadoghq.ad.logs='[{"source": "python", "service": "pbs_check"}]' \
@@ -20,9 +19,10 @@ EXPOSE 8081
 
 
 RUN mkdir -p /app
-WORKDIR /app
-COPY . .
+COPY datadog/pbs* /app
 
-RUN pip install -r requirements.txt
+WORKDIR /app
+
+RUN pip install -r /app/requirements.txt
 
 CMD python3 /app/pbs_check.py
