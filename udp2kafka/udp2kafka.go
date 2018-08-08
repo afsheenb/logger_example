@@ -74,7 +74,7 @@ func main() {
 			err := json.Unmarshal([]byte(data), &dataMap)
 			if err != nil { fmt.Println(err) }
 
-			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/1-0-1", dataMap)
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-0", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{ Event: sdj, })
 			fmt.Println(data)
 		}
