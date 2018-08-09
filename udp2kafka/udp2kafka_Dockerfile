@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y
 
 RUN mkdir -p /go/src/github.com/ozone-code/udp2kafka/
 WORKDIR /go/src/github.com/ozone-code/udp2kafka/
-COPY . .
+COPY udp2kafka/ .
 
 RUN go get -d -v ./...
 RUN go install -v ./...
