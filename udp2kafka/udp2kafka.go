@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/Jeffail/gabs"
 	sp "gopkg.in/snowplow/snowplow-golang-tracker.v1/tracker"
 	"log"
 	"net"
@@ -47,6 +48,7 @@ func main() {
 	log.Printf("Bridging messages received on UDP port 514 to Kafka broker %s", broker[0])
 	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
 	tracker := sp.InitTracker(sp.RequireEmitter(emitter))
+	subject := sp.InitSubject()
 
 	for {
 	        buf := make([]byte, 524288)
@@ -71,22 +73,31 @@ func main() {
 		if topic == "httpreq" {
 			data := string(p[1])
 			dataMap := make(map[string]interface{})
+			value, _ := gabs.ParseJSON([]byte(data))
 			err := json.Unmarshal([]byte(data), &dataMap)
 			if err != nil { fmt.Println(err) }
-
-			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/1-0-1", dataMap)
+			ua := value.Path("device.ua").String()
+			ip := value.Path("device.ip").String()
+                        subject.SetUseragent(ua)
+                        subject.SetIpAddress(ip)
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-0", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{ Event: sdj, })
-			fmt.Println(data)
+			//fmt.Println(data)
 		}
 		if topic == "bidresponse" {
 			data := string(p[1])
 			dataMap := make(map[string]interface{})
+			value, _ := gabs.ParseJSON([]byte(data))
 			err := json.Unmarshal([]byte(data), &dataMap)
 			if err != nil { fmt.Println(err) }
+			ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
+			ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
+                        subject.SetUseragent(ua)
+                        subject.SetIpAddress(ip)
 
 			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-0", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{ Event: sdj, })
-			fmt.Println(data)
+			//fmt.Println(data)
 		}
 	}
 }
