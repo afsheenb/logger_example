@@ -46,12 +46,13 @@ func main() {
 	log.Printf("Starting on %s, PID %d", hostname, os.Getpid())
 	log.Printf("Machine has %d cores", runtime.NumCPU())
 	log.Printf("Bridging messages received on UDP port 514 to Kafka broker %s", broker[0])
-	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
-	tracker := sp.InitTracker(sp.RequireEmitter(emitter))
 	subject := sp.InitSubject()
+	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
+	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject))
+
 
 	for {
-	        buf := make([]byte, 524288)
+	    buf := make([]byte, 524288)
 		n, _, err := serverConn.ReadFromUDP(buf)
 		p := strings.FieldsFunc(string(buf[0:n]), split)
 		producer, err := sarama.NewAsyncProducer(broker, kafkaConfig)
