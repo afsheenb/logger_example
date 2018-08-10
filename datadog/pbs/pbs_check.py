@@ -83,12 +83,13 @@ class heartbeat_handler(BaseHTTPRequestHandler):
         print(status_code,message)
         # Send response status code
         self.send_response(status_code)
-
+        self.end_headers()
         # Write content as utf-8 data
         self.wfile.write(bytes(message, "utf8"))
         if status_code != 200:
             self.log_to_datadog(status_code,message)
-        return
+        return 
+
 
 
 def run():
