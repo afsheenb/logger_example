@@ -81,7 +81,7 @@ func main() {
 			ip := value.Path("device.ip").String()
                         subject.SetUseragent(ua)
                         subject.SetIpAddress(ip)
-			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-0", dataMap)
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-1", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{ Event: sdj, })
 			//fmt.Println(data)
 		}
@@ -95,7 +95,7 @@ func main() {
 			ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
                         subject.SetUseragent(ua)
                         subject.SetIpAddress(ip)
-			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-0", dataMap)
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{ Event: sdj, })
 			//fmt.Println(data)
 		}
