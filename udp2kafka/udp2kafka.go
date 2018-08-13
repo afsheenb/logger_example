@@ -83,7 +83,7 @@ func main() {
                         subject.SetIpAddress(ip)
 			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-1", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{ Event: sdj, })
-			//fmt.Println(data)
+			fmt.Println(data)
 		}
 		if topic == "bidresponse" {
 			data := string(p[1])
@@ -97,7 +97,7 @@ func main() {
                         subject.SetIpAddress(ip)
 			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{ Event: sdj, })
-			//fmt.Println(data)
+			fmt.Println(data)
 		}
 	}
 }
