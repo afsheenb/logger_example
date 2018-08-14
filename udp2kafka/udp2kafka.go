@@ -15,7 +15,7 @@ import (
 )
 
 func split(r rune) bool {
-	return r == '@'
+	return r == '你'
 }
 
 func checkError(err error) {
