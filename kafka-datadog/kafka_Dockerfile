@@ -29,9 +29,10 @@ ENV COMPONENT=kafka
 # primary
 EXPOSE 9092
 
-RUN apt-get -y install software-properties-common
+RUN apt-get install -y apt-transport-https
 RUN wget -qO - https://packages.confluent.io/deb/3.3/archive.key | apt-key add -
-RUN add-apt-repository "deb [arch=amd64] https://packages.confluent.io/deb/3.3 stable main"
+RUN echo "deb [arch=amd64] https://packages.confluent.io/deb/3.3 stable main" > /etc/apt/sources.list.d/confluent.list
+
 
 RUN echo "===> installing ${COMPONENT}..." \
     && apt-get update && apt-get install -y confluent-kafka-${SCALA_VERSION} \
