@@ -10,6 +10,14 @@ LABEL io.confluent.docker.build.number=$BUILD_NUMBER \
       com.datadoghq.ad.logs='[{"source": "kafka", "service": "kafka"}]' \
       com.datadoghq.ad.check_names='["kafka"]'
 
+
+ENV SCALA_VERSION="2.11"
+ENV CONFLUENT_MAJOR_VERSION="4.1"
+ENV CONFLUENT_VERSION="4.1.0"
+ENV CONFLUENT_DEB_VERSION="1"
+ENV KAFKA_VERSION="1"
+ENV CONFLUENT_PLATFORM_LABEL=
+
 # allow arg override of required env params
 ARG KAFKA_ZOOKEEPER_CONNECT
 ENV KAFKA_ZOOKEEPER_CONNECT=${KAFKA_ZOOKEEPER_CONNECT}
@@ -21,12 +29,17 @@ ENV COMPONENT=kafka
 # primary
 EXPOSE 9092
 
+RUN apt-get update
+RUN apt-get install -y apt-transport-https
+RUN wget -qO - https://packages.confluent.io/deb/3.3/archive.key | apt-key add -
+RUN echo "deb [arch=amd64] https://packages.confluent.io/deb/3.3 stable main" > /etc/apt/sources.list.d/confluent.list
+RUN apt-get update
+
+
 RUN echo "===> installing ${COMPONENT}..." \
-    && apt-get update && apt-get install -y confluent-kafka-${SCALA_VERSION}=${KAFKA_VERSION}${CONFLUENT_PLATFORM_LABEL}-${CONFLUENT_DEB_VERSION} \
-    \
+    && apt-get install -y confluent-kafka-${SCALA_VERSION} \
     && echo "===> clean up ..."  \
     && apt-get clean && rm -rf /tmp/* /var/lib/apt/lists/* \
-    \
-        && echo "===> Setting up ${COMPONENT} dirs..." \
+    && echo "===> Setting up ${COMPONENT} dirs..." \
     && mkdir -p /var/lib/${COMPONENT}/data /etc/${COMPONENT}/secrets\
     && chmod -R ag+w /etc/${COMPONENT} /var/lib/${COMPONENT}/data /etc/${COMPONENT}/secrets
