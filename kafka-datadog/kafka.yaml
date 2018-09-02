@@ -6,7 +6,7 @@
 # sample files, https://raw.githubusercontent.com/DataDog/dd-agent/5.2.1/conf.d/kafka.yaml.example
 
 instances:
-  - host: kafka.docker.local
+  - host: 0.0.0.0
     port: 9999 # This is the JMX port on which Kafka exposes its metrics (usually 9999)
     tags:
       kafka: pootl-01
