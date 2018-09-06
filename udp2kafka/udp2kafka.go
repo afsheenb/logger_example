@@ -50,7 +50,7 @@ func main() {
 	log.Printf("Machine has %d cores", runtime.NumCPU())
 	log.Printf("Bridging messages received on UDP port 514 to Kafka broker %s", broker[0])
 	subject := sp.InitSubject()
-	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
+        emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
 	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject))
 
 	for {
@@ -113,10 +113,19 @@ func main() {
 			}
 			ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
 			ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
+			user_id := value.Path("user.id").String()
+			contextArray := []sp.SelfDescribingJson{
+			  *sp.InitSelfDescribingJson(
+				  "iglu:tech.hereford/bidresponses_context/jsonschema/1-0-1",
+			    map[string]interface{}{
+			      "userid_context": user_id,
+			    },
+			  ),
+			}
 			subject.SetUseragent(ua)
 			subject.SetIpAddress(ip)
 			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
-			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj})
+			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
 			fmt.Println(data)
 		}
 	}
