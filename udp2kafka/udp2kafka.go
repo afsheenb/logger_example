@@ -119,7 +119,7 @@ func main() {
 			  *sp.InitSelfDescribingJson(
 				  "iglu:tech.hereford/bidresponses_context/jsonschema/1-0-1",
 			    map[string]interface{}{
-			      "userid_context": user_id,
+			      "userid_ctxt": user_id,
 			    },
 			  ),
 			}
