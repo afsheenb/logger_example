@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"github.com/Jeffail/gabs"
 	"github.com/Shopify/sarama"
+	"github.com/DataDog/datadog-go/statsd"
 	sp "gopkg.in/snowplow/snowplow-golang-tracker.v1/tracker"
 	"log"
 	"net"
@@ -28,6 +29,15 @@ func checkError(err error) {
 	}
 }
 
+func stringInArray(str string, list []string) bool {
+        for _, v := range list {
+                if strings.HasSuffix(str, v) {
+                        return true
+                }
+        }
+        return false
+}
+
 func main() {
 	serverAddr, err := net.ResolveUDPAddr("udp", ":514")
 	checkError(err)
@@ -45,6 +55,7 @@ func main() {
 	kafkaConfig.Producer.Flush.Messages = 2500
 	hostname, _ := os.Hostname()
 	broker := []string{os.Getenv("KAFKA_BROKER1"), os.Getenv("KAFKA_BROKER2"), os.Getenv("KAFKA_BROKER3")}
+	statsd_host := string(os.Getenv("STATSD_HOST"))
 	log.Printf("Starting up udp2kafka bridge now...")
 	log.Printf("Starting on %s, PID %d", hostname, os.Getpid())
 	log.Printf("Machine has %d cores", runtime.NumCPU())
@@ -90,14 +101,22 @@ func main() {
 		}
 		if topic == "httpreq" {
 			data := string(p[1])
+                        pingdom_in_httpreq := 0
 			dataMap := make(map[string]interface{})
-			value, _ := gabs.ParseJSON([]byte(data))
 			err := json.Unmarshal([]byte(data), &dataMap)
 			if err != nil {
 				fmt.Println(err)
 			}
+			value, _ := gabs.ParseJSON([]byte(data))
 			ua := value.Path("device.ua").String()
 			ip := value.Path("device.ip").String()
+			host_to_httpreq_tracker := value.Path("page_name").String()
+			if (host_to_httpreq_tracker == "\"pingdom.the-ozone-project.com\"") {
+			c, _ := statsd.New(statsd_host)
+			pingdom_in_httpreq++
+			c.Namespace = "logger."
+			c.Incr("pingdom_to_httpreq_logger", nil, float64(pingdom_in_httpreq))
+			}
 			subject.SetUseragent(ua)
 			subject.SetIpAddress(ip)
 			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-4", dataMap)
@@ -107,13 +126,22 @@ func main() {
 		if topic == "bidresponse" {
 			data := string(p[1])
 			dataMap := make(map[string]interface{})
-			value, _ := gabs.ParseJSON([]byte(data))
 			err := json.Unmarshal([]byte(data), &dataMap)
 			if err != nil {
 				fmt.Println(err)
 			}
+			value, _ := gabs.ParseJSON([]byte(data))
 			ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
 			ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
+			host_to_bidresp_tracker := value.Path("page_name").String()
+			pingdom_in_bidresp := 0
+			if (host_to_bidresp_tracker == "\"pingdom.the-ozone-project.com\"") {
+			c, _ := statsd.New(statsd_host)
+		        // Prefix every metric with the app name
+			pingdom_in_bidresp++
+			c.Namespace = "logger."
+			c.Incr("pingdom_to_bidresp_logger", nil, float64(pingdom_in_bidresp))
+			}
 			user_id := value.Path("user.id").String()
 			contextArray := []sp.SelfDescribingJson{
 			  *sp.InitSelfDescribingJson(
