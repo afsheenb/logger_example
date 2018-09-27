@@ -51,7 +51,8 @@ func main() {
 	log.Printf("Bridging messages received on UDP port 514 to Kafka broker %s", broker[0])
 	subject := sp.InitSubject()
         emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
-	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject))
+        //emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford.mini.snplow.net"))
+	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject), sp.OptionAppId("test"))
 
 	for {
 		buf := make([]byte, 524288)
@@ -99,9 +100,9 @@ func main() {
 			ip := value.Path("device.ip").String()
 			subject.SetUseragent(ua)
 			subject.SetIpAddress(ip)
-			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-1", dataMap)
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-4", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj})
-			fmt.Println(data)
+			//fmt.Println(data)
 		}
 		if topic == "bidresponse" {
 			data := string(p[1])
@@ -124,9 +125,9 @@ func main() {
 			}
 			subject.SetUseragent(ua)
 			subject.SetIpAddress(ip)
-			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-4", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
-			fmt.Println(data)
+			//fmt.Println(data)
 		}
 	}
 }
