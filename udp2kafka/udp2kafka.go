@@ -125,7 +125,7 @@ func main() {
 			}
 			subject.SetUseragent(ua)
 			subject.SetIpAddress(ip)
-			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-4", dataMap)
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
 			//fmt.Println(data)
 		}
