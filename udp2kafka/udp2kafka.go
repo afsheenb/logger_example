@@ -52,7 +52,7 @@ func main() {
 	subject := sp.InitSubject()
         emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
         //emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford.mini.snplow.net"))
-	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject), sp.OptionAppId("test"))
+	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject), sp.OptionAppId("prod"))
 
 	for {
 		buf := make([]byte, 524288)
