@@ -2,12 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	//"net/textproto"
-	//"bytes"
 	"fmt"
-	//"compress/gzip"
 	"io/ioutil"
-	//"bufio"
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Jeffail/gabs"
 	"github.com/Shopify/sarama"
@@ -19,14 +15,6 @@ import (
 	"strings"
 	"time"
 )
-
-func split(r rune) bool {
-	return r == '@'
-}
-
-func splittabs(r rune) bool {
-	return r == '\t'
-}
 
 func checkError(err error) {
 	if err != nil {
@@ -68,7 +56,6 @@ func main() {
 	log.Printf("Bridging messages received on TCP port 514 to Kafka broker %s", broker[0])
 	subject := sp.InitSubject()
 	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
-	//emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford.mini.snplow.net"))
 	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject), sp.OptionAppId(app_env))
 
 	defer serverConn.Close()
@@ -164,7 +151,7 @@ func main() {
 			}
 			subject.SetUseragent(ua)
 			subject.SetIpAddress(ip)
-			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-4", dataMap)
+			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
 			//fmt.Println(data)
 		}
