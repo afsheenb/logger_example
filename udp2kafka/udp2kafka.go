@@ -7,7 +7,7 @@ import (
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Jeffail/gabs"
 	"github.com/Shopify/sarama"
-	sp "gopkg.in/snowplow/snowplow-golang-tracker.v1/tracker"
+	//sp "gopkg.in/snowplow/snowplow-golang-tracker.v1/tracker"
 	"io"
 	"log"
 	"net"
@@ -89,10 +89,12 @@ func (srv *Server) ListenAndServe() error {
 	if err != nil {
 		return err
 	}
+	/*
 	app_env := string(os.Getenv("APP_ENV_ID"))
 	subject := sp.InitSubject()
 	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
 	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject), sp.OptionAppId(app_env))
+	*/
 	kafkaConfig := sarama.NewConfig()
 	kafkaConfig.Producer.Retry.Max = 3
 	kafkaConfig.Producer.Return.Successes = true
@@ -126,7 +128,8 @@ func (srv *Server) ListenAndServe() error {
 		conn.SetDeadline(time.Now().Add(conn.IdleTimeout))
 		conn_count++
 		fmt.Println(conn_count)
-		go srv.handle(conn, subject, emitter, tracker, reqproducer, respproducer)
+		//go srv.handle(conn, subject, emitter, tracker, reqproducer, respproducer)
+		go srv.handle(conn, reqproducer, respproducer)
 	}
 	return nil
 }
@@ -140,7 +143,8 @@ func (srv *Server) trackConn(c *conn) {
 	srv.conns[c] = struct{}{}
 }
 
-func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, tracker *sp.Tracker, reqproducer sarama.AsyncProducer, respproducer sarama.AsyncProducer) error {
+//func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, tracker *sp.Tracker, reqproducer sarama.AsyncProducer, respproducer sarama.AsyncProducer) error {
+func (srv *Server) handle(conn *conn, reqproducer sarama.AsyncProducer, respproducer sarama.AsyncProducer) error {
 	statsd_host := string(os.Getenv("STATSD_HOST"))
 
 	defer func() {
@@ -205,9 +209,10 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 				if err != nil {
 					fmt.Println(err)
 				}
+				
 				value, _ := gabs.ParseJSON([]byte(data))
-				ua := value.Path("device.ua").String()
-				ip := value.Path("device.ip").String()
+			//	ua := value.Path("device.ua").String()
+			//	ip := value.Path("device.ip").String()
 				host_to_httpreq_tracker := value.Path("page_name").String()
 				if host_to_httpreq_tracker == "\"pingdom.the-ozone-project.com\"" {
 					c, _ := statsd.New(statsd_host)
@@ -215,10 +220,11 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 					c.Namespace = "logger."
 					c.Incr("pingdom_to_httpreq_snplow", nil, float64(pingdom_in_httpreq))
 				}
-				subject.SetUseragent(ua)
+				/*subject.SetUseragent(ua)
 				subject.SetIpAddress(ip)
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-4", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj})
+				*/
 				fmt.Println(data)
 			}
 			if resptopic == "bidresponse" {
@@ -234,8 +240,8 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 				}
 				respproducer.Input() <- respmsg
 				value, _ := gabs.ParseJSON([]byte(data))
-				ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
-				ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
+			//	ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
+			//	ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
 				host_to_bidresp_tracker := value.Path("page_name").String()
 				pingdom_in_bidresp := 0
 				if host_to_bidresp_tracker == "\"pingdom.the-ozone-project.com\"" {
@@ -245,6 +251,7 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 					c.Namespace = "logger."
 					c.Incr("pingdom_to_bidresp_snplow", nil, float64(pingdom_in_bidresp))
 				}
+				/*
 				user_id := value.Path("user.id").String()
 				contextArray := []sp.SelfDescribingJson{
 					*sp.InitSelfDescribingJson(
@@ -259,6 +266,7 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
 				fmt.Println(data)
+				*/
 			}
 			deadline = time.After(conn.IdleTimeout)
 		}
