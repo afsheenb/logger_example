@@ -61,14 +61,15 @@ func main() {
 	hostname, _ := os.Hostname()
 	broker := []string{os.Getenv("KAFKA_BROKER1"), os.Getenv("KAFKA_BROKER2"), os.Getenv("KAFKA_BROKER3")}
 	statsd_host := string(os.Getenv("STATSD_HOST"))
+	app_env := string(os.Getenv("APP_ENV_ID"))
 	log.Printf("Starting up tcp2kafka bridge now...")
 	log.Printf("Starting on %s, PID %d", hostname, os.Getpid())
 	log.Printf("Machine has %d cores", runtime.NumCPU())
-	log.Printf("Bridging messages received on UDP port 514 to Kafka broker %s", broker[0])
+	log.Printf("Bridging messages received on TCP port 514 to Kafka broker %s", broker[0])
 	subject := sp.InitSubject()
 	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
 	//emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford.mini.snplow.net"))
-	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject))
+	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject), sp.OptionAppId(app_env))
 
 	defer serverConn.Close()
 	for {
@@ -113,15 +114,16 @@ func main() {
 				c, _ := statsd.New(statsd_host)
 				pingdom_in_httpreq++
 				c.Namespace = "logger."
-				c.Incr("pingdom_to_httpreq_logger", nil, float64(pingdom_in_httpreq))
+				c.Incr("pingdom_to_httpreq_snplow", nil, float64(pingdom_in_httpreq))
 			}
 			subject.SetUseragent(ua)
 			subject.SetIpAddress(ip)
 			sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-4", dataMap)
 			tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj})
+			//fmt.Println(data)
 		}
 		if resptopic == "bidresponse" {
-			data := string(p[1])
+			data := string(p[3])
 			dataMap := make(map[string]interface{})
 			err := json.Unmarshal([]byte(data), &dataMap)
 			if err != nil {
@@ -149,7 +151,7 @@ func main() {
 				// Prefix every metric with the app name
 				pingdom_in_bidresp++
 				c.Namespace = "logger."
-				c.Incr("pingdom_to_bidresp_logger", nil, float64(pingdom_in_bidresp))
+				c.Incr("pingdom_to_bidresp_snplow", nil, float64(pingdom_in_bidresp))
 			}
 			user_id := value.Path("user.id").String()
 			contextArray := []sp.SelfDescribingJson{
