@@ -39,8 +39,14 @@ func main() {
 	kafkaConfig.Producer.Compression = sarama.CompressionSnappy
 	kafkaConfig.Producer.Flush.Frequency = 200 * time.Millisecond
 	kafkaConfig.Producer.Flush.Messages = 2500
-	reqproducer, _ := sarama.NewAsyncProducer(broker, kafkaConfig)
-	respproducer, _ := sarama.NewAsyncProducer(broker, kafkaConfig)
+	reqproducer, err := sarama.NewSyncProducer(broker, kafkaConfig)
+	if err != nil {
+		fmt.Println("Critical error connecting to kafka broker for requests: %v", err)
+	}
+	respproducer, _ := sarama.NewSyncProducer(broker, kafkaConfig)
+	if err != nil {
+		fmt.Println("Critical error connecting to kafka broker for responses: %v", err)
+	}
 	count := 0
 
 	wg.Add(2)
@@ -63,11 +69,6 @@ func main() {
 			for scanner.Scan() {
 				dataBuf := string(scanner.Text())
 				p := strings.Split(string(dataBuf), "@")
-				/* producer, err := sarama.NewAsyncProducer(broker, kafkaConfig)
-				if err != nil {
-					fmt.Println("Critical error connecting to kafka broker: %v", err)
-				}
-				*/
 				reqtopic := string(p[0])
 				resptopic := string(p[2])
 
@@ -76,7 +77,11 @@ func main() {
 						Topic: string(reqtopic),
 						Value: sarama.StringEncoder(p[1]),
 					}
-					reqproducer.Input() <- reqmsg
+
+					_, _, err := producer.SendMessage(reqmsg)
+						if err != nil {
+							fmt.Println(err)
+					}
 
 					data := string(p[1])
 					pingdom_in_httpreq := 0
@@ -113,7 +118,10 @@ func main() {
 						Topic: string(resptopic),
 						Value: sarama.StringEncoder(p[3]),
 					}
-					respproducer.Input() <- respmsg
+					_, _, err := producer.SendMessage(respmsg)
+						if err != nil {
+							fmt.Println(err)
+					}
 					value, _ := gabs.ParseJSON([]byte(data))
 					ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
 					ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
@@ -140,11 +148,12 @@ func main() {
 					sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 					tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
 					fmt.Println(data)
-				}
+		}
 			}
 			fmt.Println(count)
 			count++
 		}
+	}()
 		if errs := reqproducer.Close(); errs != nil {
 			for _, err := range errs.(sarama.ProducerErrors) {
 				fmt.Println("Write to kafka failed: ", err)
@@ -155,7 +164,6 @@ func main() {
 				fmt.Println("Write to kafka failed: ", err)
 			}
 		}
-	}()
 
 	wg.Wait()
 }
