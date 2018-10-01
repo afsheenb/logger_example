@@ -78,9 +78,9 @@ func main() {
 						Value: sarama.StringEncoder(p[1]),
 					}
 
-					_, _, err := producer.SendMessage(reqmsg)
-						if err != nil {
-							fmt.Println(err)
+					_, _, reqerr := reqproducer.SendMessage(reqmsg)
+						if reqerr != nil {
+							fmt.Println(reqerr)
 					}
 
 					data := string(p[1])
@@ -118,9 +118,9 @@ func main() {
 						Topic: string(resptopic),
 						Value: sarama.StringEncoder(p[3]),
 					}
-					_, _, err := producer.SendMessage(respmsg)
-						if err != nil {
-							fmt.Println(err)
+					_, _, resperr := respproducer.SendMessage(respmsg)
+						if resperr != nil {
+							fmt.Println(resperr)
 					}
 					value, _ := gabs.ParseJSON([]byte(data))
 					ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
