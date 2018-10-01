@@ -9,7 +9,6 @@ import (
 	"github.com/Shopify/sarama"
 	sp "gopkg.in/snowplow/snowplow-golang-tracker.v1/tracker"
 	"runtime"
-	//"io"
 	"log"
 	"net"
 	"os"
