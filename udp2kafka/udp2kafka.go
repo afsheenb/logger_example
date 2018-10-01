@@ -71,7 +71,6 @@ func main() {
 				*/
 				reqtopic := string(p[0])
 				resptopic := string(p[2])
-				fmt.Println(string(p[1]))
 
 				if reqtopic == "httpreq" {
 					reqmsg := &sarama.ProducerMessage{
