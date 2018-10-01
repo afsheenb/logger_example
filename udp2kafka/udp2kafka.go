@@ -22,12 +22,13 @@ var wg sync.WaitGroup
 
 func main() {
 	statsd_host := string(os.Getenv("STATSD_HOST"))
+	socket_file := string(os.Getenv("LOGGER_SOCKET_FILE"))
 	log.Printf("Starting up tcp2kafka bridge now...")
 	hostname, _ := os.Hostname()
 	broker := []string{os.Getenv("KAFKA_BROKER1"), os.Getenv("KAFKA_BROKER2"), os.Getenv("KAFKA_BROKER3")}
 	log.Printf("Starting on %s, PID %d", hostname, os.Getpid())
 	log.Printf("Machine has %d cores", runtime.NumCPU())
-	log.Printf("Bridging messages received on TCP port 514 to Kafka broker %s", broker[0])
+	log.Printf("Bridging messages to Kafka broker %s", broker[0])
 	app_env := string(os.Getenv("APP_ENV_ID"))
 	subject := sp.InitSubject()
 	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
@@ -44,7 +45,7 @@ func main() {
 	count := 0
 
 	wg.Add(2)
-	listen, err := net.Listen("tcp", ":514")
+	listen, err := net.Listen("unix", socket_file)
 	if err != nil {
 		log.Fatal(err)
 	}
