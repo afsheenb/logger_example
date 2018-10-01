@@ -45,7 +45,7 @@ func main() {
 	count := 0
 
 	wg.Add(2)
-	listen, err := net.Listen("unix", "/usr/src/ozone/prebid-server/logger.sock")
+	listen, err := net.Listen("unix", socket_file)
 	if err != nil {
 		log.Fatal(err)
 	}
