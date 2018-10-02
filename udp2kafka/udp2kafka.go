@@ -7,7 +7,7 @@ import (
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/Jeffail/gabs"
 	"github.com/Shopify/sarama"
-	sp "gopkg.in/snowplow/snowplow-golang-tracker.v1/tracker"
+	sp "gopkg.in/snowplow/snowplow-golang-tracker.v2/tracker"
 	"io"
 	"log"
 	"net"
@@ -91,7 +91,8 @@ func (srv *Server) ListenAndServe() error {
 	}
 	app_env := string(os.Getenv("APP_ENV_ID"))
 	subject := sp.InitSubject()
-	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"))
+        storage := sp.InitStorageMemory()
+	emitter := sp.InitEmitter(sp.RequireCollectorUri("tech-hereford-f39dac8.collector.snplow.net"), sp.OptionStorage(storage))
 	tracker := sp.InitTracker(sp.RequireEmitter(emitter), sp.OptionSubject(subject), sp.OptionAppId(app_env))
 	kafkaConfig := sarama.NewConfig()
 	kafkaConfig.Producer.Retry.Max = 3
