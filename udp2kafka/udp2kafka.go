@@ -51,17 +51,16 @@ func main() {
 
 	wg.Add(2)
 	listen, err := net.Listen("unix", socket_file)
-        defer os.Remove(socket_file)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer listen.Close()
+        defer os.Remove(socket_file)
 
 	go func() {
 
 		for {
 			conn, err := listen.Accept()
-			defer conn.Close()
 			if err != nil {
 				log.Fatal(err)
                                 os.Remove(socket_file)
@@ -154,6 +153,7 @@ func main() {
 			}
 			fmt.Println(count)
 			count++
+			conn.Close()
 		}
 		if errs := reqproducer.Close(); errs != nil {
 			for _, err := range errs.(sarama.ProducerErrors) {
