@@ -274,9 +274,9 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
                                 dataMap.Lock()
 				subject.SetUseragent(ua)
 				subject.SetIpAddress(ip)
-                                dataMap.Unlock()
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
+                                dataMap.Unlock()
 				fmt.Println(data)
 			}
                         count++
