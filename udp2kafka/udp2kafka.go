@@ -222,6 +222,7 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 					c.Namespace = "logger."
 					c.Incr("pingdom_to_httpreq_snplow", nil, float64(pingdom_in_httpreq))
 				}
+                                req_mutex.Lock()
                                 dataMap.Lock()
 				// subject.SetUseragent(ua)
 				// subject.SetIpAddress(ip)
@@ -234,7 +235,7 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 			if resptopic == "bidresponse" {
                                 var resp_mutex = sync.Mutex{}
 				data := string(p[3])
-				//dataMap := make(map[string]interface{})
+				///dataMap := make(map[string]interface{})
 				var dataMap = struct{
 				    sync.RWMutex
 				    m map[string]interface{}
