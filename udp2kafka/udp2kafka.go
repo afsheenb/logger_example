@@ -164,6 +164,8 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
         count := 0
 	sc := make(chan bool)
 	deadline := time.After(conn.IdleTimeout)
+	var wg sync.WaitGroup
+	wg.Add(2)
 	for {
 		go func(s chan bool) {
 			s <- scanr.Scan()
@@ -284,6 +286,7 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 			deadline = time.After(conn.IdleTimeout)
 		}
 	}
+        wg.Wait()
 	return nil
 }
 
