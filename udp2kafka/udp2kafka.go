@@ -101,8 +101,8 @@ func (srv *Server) ListenAndServe() error {
 	kafkaConfig.Producer.Flush.Frequency = 200 * time.Millisecond
 	kafkaConfig.Producer.Flush.Messages = 2500
 	broker := []string{os.Getenv("KAFKA_BROKER1"), os.Getenv("KAFKA_BROKER2"), os.Getenv("KAFKA_BROKER3")}
-	reqproducer, err := sarama.NewAsyncProducer(broker, kafkaConfig)
-	respproducer, err := sarama.NewAsyncProducer(broker, kafkaConfig)
+	reqproducer, err := sarama.NewSyncProducer(broker, kafkaConfig)
+	respproducer, err := sarama.NewSyncProducer(broker, kafkaConfig)
 	defer listener.Close()
 	srv.listener = listener
 	conn_count :=0
@@ -128,6 +128,16 @@ func (srv *Server) ListenAndServe() error {
 		fmt.Println(conn_count)
 		go srv.handle(conn, subject, emitter, tracker, reqproducer, respproducer)
 	}
+		if errs := reqproducer.Close(); errs != nil {
+			for _, err := range errs.(sarama.ProducerErrors) {
+				fmt.Println("Write to kafka failed: ", err)
+			}
+		}
+		if errs := respproducer.Close(); errs != nil {
+			for _, err := range errs.(sarama.ProducerErrors) {
+				fmt.Println("Write to kafka failed: ", err)
+			}
+		}
 	return nil
 }
 
@@ -140,27 +150,17 @@ func (srv *Server) trackConn(c *conn) {
 	srv.conns[c] = struct{}{}
 }
 
-func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, tracker *sp.Tracker, reqproducer sarama.AsyncProducer, respproducer sarama.AsyncProducer) error {
+func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, tracker *sp.Tracker, reqproducer sarama.SyncProducer, respproducer sarama.SyncProducer) error {
 	statsd_host := string(os.Getenv("STATSD_HOST"))
 
 	defer func() {
 		log.Printf("closing connection from %v", conn.RemoteAddr())
 		conn.Close()
-		if errs := reqproducer.Close(); errs != nil {
-			for _, err := range errs.(sarama.ProducerErrors) {
-				fmt.Println("Write to kafka failed: ", err)
-			}
-		}
-		if errs := respproducer.Close(); errs != nil {
-			for _, err := range errs.(sarama.ProducerErrors) {
-				fmt.Println("Write to kafka failed: ", err)
-			}
-		}
 		srv.deleteConn(conn)
 	}()
 	r := bufio.NewReader(conn)
 	scanr := bufio.NewScanner(r)
-
+        count := 0
 	sc := make(chan bool)
 	deadline := time.After(conn.IdleTimeout)
 	for {
@@ -180,7 +180,7 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 			//fmt.Println(scanr.Text())
 			dataBuf := string(scanr.Text())
 			p := strings.Split(string(dataBuf), "@")
-			/* producer, err := sarama.NewAsyncProducer(broker, kafkaConfig)
+			/* producer, err := sarama.NewSyncProducer(broker, kafkaConfig)
 			if err != nil {
 				fmt.Println("Critical error connecting to kafka broker: %v", err)
 			}
@@ -189,13 +189,16 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 			resptopic := string(p[2])
 
 			if reqtopic == "httpreq" {
-				//reqproducer, err := sarama.NewAsyncProducer(broker, kafkaConfig)
+				//reqproducer, err := sarama.NewSyncProducer(broker, kafkaConfig)
 				reqmsg := &sarama.ProducerMessage{
 					Topic: string(reqtopic),
 					Value: sarama.StringEncoder(p[1]),
 				}
-				reqproducer.Input() <- reqmsg
 
+				_, _, reqerr := reqproducer.SendMessage(reqmsg)
+					if reqerr != nil {
+						fmt.Println(reqerr)
+				}
 				data := string(p[1])
 				pingdom_in_httpreq := 0
 				dataMap := make(map[string]interface{})
@@ -220,6 +223,7 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 				fmt.Println(data)
 			}
 			if resptopic == "bidresponse" {
+
 				data := string(p[3])
 				dataMap := make(map[string]interface{})
 				err := json.Unmarshal([]byte(data), &dataMap)
@@ -230,7 +234,11 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 					Topic: string(resptopic),
 					Value: sarama.StringEncoder(p[3]),
 				}
-				respproducer.Input() <- respmsg
+
+				_, _, resperr := respproducer.SendMessage(respmsg)
+					if resperr != nil {
+						fmt.Println(resperr)
+					}
 				value, _ := gabs.ParseJSON([]byte(data))
 				ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
 				ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
@@ -258,6 +266,8 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
 				fmt.Println(data)
 			}
+                        count++
+                        fmt.Println(count)
 			deadline = time.After(conn.IdleTimeout)
 		}
 	}
