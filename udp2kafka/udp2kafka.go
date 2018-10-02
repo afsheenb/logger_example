@@ -1,7 +1,8 @@
 package main
 
 import (
-	"bufio"
+	//"bufio"
+	"io/ioutil"
 	"encoding/json"
 	"fmt"
 	"github.com/DataDog/datadog-go/statsd"
@@ -66,9 +67,11 @@ func main() {
                                 os.Remove(socket_file)
 			}
 
-			scanner := bufio.NewScanner(conn)
-			for scanner.Scan() {
-				dataBuf := string(scanner.Text())
+			//scanner := bufio.NewScanner(conn)
+			//for scanner.Scan() {
+                        text , err := ioutil.ReadAll(conn)
+				//dataBuf := string(scanner.Text())
+				dataBuf := string(text)
 				p := strings.Split(string(dataBuf), "@")
 				reqtopic := string(p[0])
 				resptopic := string(p[2])
@@ -150,7 +153,7 @@ func main() {
 					tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
 					//fmt.Println(data)
 		}
-			}
+			//}
 			fmt.Println(count)
 			count++
 			conn.Close()
