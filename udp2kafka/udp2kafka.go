@@ -201,7 +201,11 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 				}
 				data := string(p[1])
 				pingdom_in_httpreq := 0
-				dataMap := make(map[string]interface{})
+				var dataMap = struct{
+				    sync.RWMutex
+				    m map[string]interface{}
+				}{m: make(map[string]interface{})}
+				//dataMap := make(map[string]interface{})
 				err := json.Unmarshal([]byte(data), &dataMap)
 				if err != nil {
 					fmt.Println(err)
@@ -216,16 +220,22 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 					c.Namespace = "logger."
 					c.Incr("pingdom_to_httpreq_snplow", nil, float64(pingdom_in_httpreq))
 				}
+                                dataMap.Lock()
 				subject.SetUseragent(ua)
 				subject.SetIpAddress(ip)
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-4", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj})
+                                dataMap.Unlock()
 				fmt.Println(data)
 			}
 			if resptopic == "bidresponse" {
 
 				data := string(p[3])
-				dataMap := make(map[string]interface{})
+				//dataMap := make(map[string]interface{})
+				var dataMap = struct{
+				    sync.RWMutex
+				    m map[string]interface{}
+				}{m: make(map[string]interface{})}
 				err := json.Unmarshal([]byte(data), &dataMap)
 				if err != nil {
 					fmt.Println(err)
@@ -260,8 +270,10 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 						},
 					),
 				}
+                                dataMap.Lock()
 				subject.SetUseragent(ua)
 				subject.SetIpAddress(ip)
+                                dataMap.Unlock()
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
 				fmt.Println(data)
@@ -300,8 +312,9 @@ func (srv *Server) Shutdown() {
 
 func main() {
 
+	addr := string(os.Getenv("LOGGER_SOCKET_FILE"))
 	srv := Server{
-		Addr:         ":514",
+		Addr:         addr,
 		IdleTimeout:  10 * time.Second,
 		MaxReadBytes: 8000,
 	}
