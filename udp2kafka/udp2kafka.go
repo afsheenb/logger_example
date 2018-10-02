@@ -51,6 +51,7 @@ func main() {
 
 	wg.Add(2)
 	listen, err := net.Listen("unix", socket_file)
+        defer os.Remove(socket_file)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -153,7 +154,6 @@ func main() {
 			fmt.Println(count)
 			count++
 		}
-	}()
 		if errs := reqproducer.Close(); errs != nil {
 			for _, err := range errs.(sarama.ProducerErrors) {
 				fmt.Println("Write to kafka failed: ", err)
@@ -164,6 +164,7 @@ func main() {
 				fmt.Println("Write to kafka failed: ", err)
 			}
 		}
+	}()
 
 	wg.Wait()
 }
