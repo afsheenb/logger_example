@@ -203,10 +203,7 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 						fmt.Println(reqerr)
 				}
 				pingdom_in_httpreq := 0
-				var dataMap = struct{
-				    sync.RWMutex
-				    m map[string]interface{}
-				}{m: make(map[string]interface{})}
+				dataMap := make(map[string]interface{})
 				err := json.Unmarshal([]byte(data), &dataMap)
 				if err != nil {
 					fmt.Println(err)
@@ -221,22 +218,17 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 					c.Namespace = "logger."
 					c.Incr("pingdom_to_httpreq_snplow", nil, float64(pingdom_in_httpreq))
 				}
-                                dataMap.Lock()
                                 srv.mu.Lock()
 				subject.SetUseragent(ua)
 				subject.SetIpAddress(ip)
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-4", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj})
                                 srv.mu.Unlock()
-                                dataMap.Unlock()
 				//fmt.Println(data)
 			}
 			if resptopic == "bidresponse" {
 				data := string(p[3])
-				var dataMap = struct{
-				    sync.RWMutex
-				    m map[string]interface{}
-				}{m: make(map[string]interface{})}
+				dataMap := make(map[string]interface{})
 				err := json.Unmarshal([]byte(data), &dataMap)
 				if err != nil {
 					fmt.Println(err)
@@ -270,13 +262,11 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 						},
 					),
 				}
-                                dataMap.Lock()
                                 srv.mu.Lock()
 				subject.SetUseragent(ua)
 				subject.SetIpAddress(ip)
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
-                                dataMap.Unlock()
                                 srv.mu.Unlock()
 				//fmt.Println(data)
 			}
