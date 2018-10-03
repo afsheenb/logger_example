@@ -80,6 +80,7 @@ func (srv *Server) ListenAndServe() error {
 	if addr == "" {
 		addr = "/var/run/logger/logger.sock"
 	}
+        os.Remove(addr)
 	hostname, _ := os.Hostname()
 	log.Printf("Starting server on %v\n", addr)
 	log.Printf("Starting on %s, PID %d", hostname, os.Getpid())
@@ -207,14 +208,13 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 				    sync.RWMutex
 				    m map[string]interface{}
 				}{m: make(map[string]interface{})}
-				//dataMap := make(map[string]interface{})
 				err := json.Unmarshal([]byte(data), &dataMap)
 				if err != nil {
 					fmt.Println(err)
 				}
 				value, _ := gabs.ParseJSON([]byte(data))
-				// ua := value.Path("device.ua").String()
-				//ip := value.Path("device.ip").String()
+				ua := value.Path("device.ua").String()
+				ip := value.Path("device.ip").String()
 				host_to_httpreq_tracker := value.Path("page_name").String()
 				if host_to_httpreq_tracker == "\"pingdom.the-ozone-project.com\"" {
 					c, _ := statsd.New(statsd_host)
@@ -222,20 +222,19 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 					c.Namespace = "logger."
 					c.Incr("pingdom_to_httpreq_snplow", nil, float64(pingdom_in_httpreq))
 				}
-                                req_mutex.Lock()
                                 dataMap.Lock()
-				// subject.SetUseragent(ua)
-				// subject.SetIpAddress(ip)
+                                mu.Lock()
+				subject.SetUseragent(ua)
+				subject.SetIpAddress(ip)
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/httpreqs/jsonschema/2-0-4", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj})
+                                mu.Unlock()
                                 dataMap.Unlock()
-                                req_mutex.Unlock()
 				//fmt.Println(data)
 			}
 			if resptopic == "bidresponse" {
                                 var resp_mutex = sync.Mutex{}
 				data := string(p[3])
-				///dataMap := make(map[string]interface{})
 				var dataMap = struct{
 				    sync.RWMutex
 				    m map[string]interface{}
@@ -254,13 +253,12 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 						fmt.Println(resperr)
 					}
 				value, _ := gabs.ParseJSON([]byte(data))
-				//ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
-				//ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
+				ua := value.Path("ext.debug.resolvedrequest.device.ua").String()
+				ip := value.Path("ext.debug.resolvedrequest.device.ip").String()
 				host_to_bidresp_tracker := value.Path("page_name").String()
 				pingdom_in_bidresp := 0
 				if host_to_bidresp_tracker == "\"pingdom.the-ozone-project.com\"" {
 					c, _ := statsd.New(statsd_host)
-					// Prefix every metric with the app name
 					pingdom_in_bidresp++
 					c.Namespace = "logger."
 					c.Incr("pingdom_to_bidresp_snplow", nil, float64(pingdom_in_bidresp))
@@ -275,13 +273,13 @@ func (srv *Server) handle(conn *conn, subject *sp.Subject, emitter *sp.Emitter, 
 					),
 				}
                                 dataMap.Lock()
-                                resp_mutex.Lock()
-				//subject.SetUseragent(ua)
-				//subject.SetIpAddress(ip)
+                                mu.Lock()
+				subject.SetUseragent(ua)
+				subject.SetIpAddress(ip)
 				sdj := sp.InitSelfDescribingJson("iglu:tech.hereford/bidresponses/jsonschema/1-0-1", dataMap)
 				tracker.TrackSelfDescribingEvent(sp.SelfDescribingEvent{Event: sdj, Contexts: contextArray})
                                 dataMap.Unlock()
-                                resp_mutex.Unlock()
+                                mu.Unlock()
 				//fmt.Println(data)
 			}
                         count++
@@ -323,6 +321,7 @@ func main() {
 		Addr:         addr,
 		IdleTimeout:  10 * time.Second,
 		MaxReadBytes: 8000,
+                mu: &sync.Mutex{}
 	}
 	go srv.ListenAndServe()
 	time.Sleep(10 * time.Second)
